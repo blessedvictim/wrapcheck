@@ -9,8 +9,11 @@ import (
 
 var ignoredIDs = []string{
 	"func fmt.Errorf(format string, a ...interface{}) error",
-	"func errors.New(text string) error",
-	"func errors.Unwrap(err error) error",
+}
+
+var ignoredPackages = []string{
+	"errors",
+	"github.com/pkg/errors",
 }
 
 var Analyzer = &analysis.Analyzer{
@@ -136,9 +139,12 @@ func isFromOtherPkg(pass *analysis.Pass, sel *ast.SelectorExpr, ident *ast.Ident
 
 	// If it's not a package name, then we should check the selector to make sure
 	// that it's an identifier from the same package
-	if pass.Pkg.Path() == fn.Pkg().Path() {
+	switch {
+	case pass.Pkg.Path() == fn.Pkg().Path():
 		return false
-	} else if contains(ignoredIDs, fn.String()) {
+	case contains(ignoredIDs, fn.String()):
+		return false
+	case contains(ignoredPackages, fn.Pkg().Path()):
 		return false
 	}
 
